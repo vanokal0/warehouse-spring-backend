@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.naming.OperationNotSupportedException;
 import java.util.*;
@@ -76,6 +77,7 @@ public class OrderService extends BaseSpecificationService<Order> {
         return response;
     }
 
+    @Transactional
     public OrderDTO createOrder(OrderDTO dto) {
         Supplier supplier = supplierRepository.findByCompanyName(dto.getSupplier())
                 .orElseGet(() -> {
@@ -144,6 +146,8 @@ public class OrderService extends BaseSpecificationService<Order> {
         return orderMapper.toDTO(savedOrder);
     }
 
+    // OperationNotSupportedException is checked, so rollback must be enabled for it explicitly
+    @Transactional(rollbackFor = OperationNotSupportedException.class)
     public void updateOrder(String orderNumber, OrderDTO dto) throws OperationNotSupportedException {
         Order order = orderRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new NoSuchElementException("Замовлення не знайдено: " + orderNumber));
@@ -251,6 +255,7 @@ public class OrderService extends BaseSpecificationService<Order> {
         }
     }
 
+    @Transactional(rollbackFor = OperationNotSupportedException.class)
     public void deleteOrder(String orderNumber) throws OperationNotSupportedException {
         Order  order = orderRepository.findByOrderNumber(orderNumber).orElseThrow();
 

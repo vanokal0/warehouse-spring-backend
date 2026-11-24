@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
@@ -79,6 +80,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
                 .toList();
     }
 
+    @Transactional
     public ProductShipmentDTO createShipment(ProductShipmentDTO dto) {
         LotBooking booking = lotBookingRepository.findByBookingNumber(dto.getLotBookingNumber())
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено."));

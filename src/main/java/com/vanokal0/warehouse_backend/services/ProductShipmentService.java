@@ -86,9 +86,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено."));
 
 
-        List<String> splitName = Arrays.stream(dto.getEmployee().split(" ")).toList();
-        Employee employee = employeeRepository.findByFirstNameAndLastName(splitName.getFirst(), splitName.getLast())
-                .orElseThrow(() -> new NoSuchElementException("Оператора не знайдено."));
+        Employee employee = findEmployeeByFullName(dto.getEmployee(), "Оператора не знайдено.");
 
         Room room = roomRepository.findByRoomNumber(dto.getRoomNumber())
                 .orElseThrow(() -> new NoSuchElementException("Кімнату не знайдено."));
@@ -106,21 +104,8 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         OrderProduct orderProduct = orderProductRepository.findByConcreteProductAndOrder(concreteProduct, order)
                 .orElseThrow(() -> new NoSuchElementException("Продукту в замовлені не знайдено."));
 
-        if(orderProduct.getProductQuantity()< dto.getQuantity()){
-            throw new  NoSuchElementException("Кількість продуктів відправлення більше за вказану у замовлені.");
-        }
-
-        List<ProductShipment> shipments =  productShipmentRepository.findByOrderProduct(orderProduct);
-        int reducedQuantity = shipments.stream().reduce(0, (acc, shp)-> acc + shp.getProductQuantity(), Integer::sum);
-
-        if(reducedQuantity+dto.getQuantity()>orderProduct.getProductQuantity()){
-            throw new NoSuchElementException("Сумарна кількість продуктів відправлень більше за вказану у замовлені.");
-        }
-        if(orderProduct.getProductQuantity()< dto.getQuantity()){
-            throw new  NoSuchElementException("Кількість продуктів відправлення більше за вказану у замовлені.");
-        }
-
-
+        validateShipmentQuantityWithinOrder(orderProduct, dto.getQuantity());
+        validateTotalShipmentQuantity(orderProduct, dto.getQuantity(), 0);
 
         StoredProduct storedProduct = new StoredProduct();
         storedProduct.setRoom(room);
@@ -128,9 +113,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         storedProduct.setProductQuantity(dto.getQuantity());
 
 
-        if(!room.getProductType().getTypeName().equals(concreteProduct.getProduct().getProductType().getTypeName())){
-            throw new NoSuchElementException("Обрана кімната не містить цієї продукції");
-        }
+        validateRoomMatchesProduct(room, concreteProduct);
         ProductShipment shipment = new ProductShipment();
         shipment.setShipmentNumber(generateUniqueShipmentNumber());
         shipment.setLotBooking(booking);
@@ -175,9 +158,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         LotBooking booking = lotBookingRepository.findByBookingNumber(dto.getLotBookingNumber())
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено"));
 
-        List<String> splitName = Arrays.stream(dto.getEmployee().split(" ")).toList();
-        Employee employee = employeeRepository.findByFirstNameAndLastName(splitName.getFirst(), splitName.getLast())
-                .orElseThrow(() -> new NoSuchElementException("Оператора не знайдено"));
+        Employee employee = findEmployeeByFullName(dto.getEmployee(), "Оператора не знайдено");
 
         Order order = orderRepository.findByOrderNumber(dto.getOrderNumber())
                 .orElseThrow(() -> new NoSuchElementException("Замовлення не знайдено"));
@@ -192,21 +173,12 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         OrderProduct orderProduct = orderProductRepository.findByConcreteProductAndOrder(concreteProduct, order)
                 .orElseThrow(() -> new NoSuchElementException("Продукту в замовлені не знайдено."));
 
-        List<ProductShipment> shipments =  productShipmentRepository.findByOrderProduct(orderProduct);
-        int reducedQuantity = shipments.stream().reduce(0, (acc, shp)-> acc + shp.getProductQuantity(), Integer::sum);
-
-        if(reducedQuantity-shipment.getProductQuantity()+dto.getQuantity()>orderProduct.getProductQuantity()){
-            throw new NoSuchElementException("Сумарна кількість продуктів відправлень більше за вказану у замовлені.");
-        }
-        if(orderProduct.getProductQuantity()< dto.getQuantity()){
-            throw new  NoSuchElementException("Кількість продуктів відправлення більше за вказану у замовлені.");
-        }
+        validateTotalShipmentQuantity(orderProduct, dto.getQuantity(), shipment.getProductQuantity());
+        validateShipmentQuantityWithinOrder(orderProduct, dto.getQuantity());
 
         Room room = roomRepository.findByRoomNumber(dto.getRoomNumber())
                 .orElseThrow(() -> new NoSuchElementException("Кімнату не знайдено."));
-        if(!room.getProductType().getTypeName().equals(concreteProduct.getProduct().getProductType().getTypeName())){
-            throw new NoSuchElementException("Обрана кімната не містить цієї продукції");
-        }
+        validateRoomMatchesProduct(room, concreteProduct);
 
         shipment.setLotBooking(booking);
         shipment.setEmployee(employee);
@@ -263,6 +235,33 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         state.put("room", shipment.getStoredProduct().getRoom().getRoomNumber());
         state.put("lotBooking", shipment.getLotBooking().getBookingNumber());
         return state;
+    }
+
+    private Employee findEmployeeByFullName(String fullName, String notFoundMessage) {
+        List<String> splitName = Arrays.stream(fullName.split(" ")).toList();
+        return employeeRepository.findByFirstNameAndLastName(splitName.getFirst(), splitName.getLast())
+                .orElseThrow(() -> new NoSuchElementException(notFoundMessage));
+    }
+
+    private void validateRoomMatchesProduct(Room room, ConcreteProduct concreteProduct) {
+        if(!room.getProductType().getTypeName().equals(concreteProduct.getProduct().getProductType().getTypeName())){
+            throw new NoSuchElementException("Обрана кімната не містить цієї продукції");
+        }
+    }
+
+    private void validateShipmentQuantityWithinOrder(OrderProduct orderProduct, Integer requestedQuantity) {
+        if(orderProduct.getProductQuantity() < requestedQuantity){
+            throw new NoSuchElementException("Кількість продуктів відправлення більше за вказану у замовлені.");
+        }
+    }
+
+    // currentQuantity is the quantity of the shipment being updated (0 for a new shipment)
+    private void validateTotalShipmentQuantity(OrderProduct orderProduct, Integer requestedQuantity, Integer currentQuantity) {
+        List<ProductShipment> shipments = productShipmentRepository.findByOrderProduct(orderProduct);
+        int reducedQuantity = shipments.stream().reduce(0, (acc, shp)-> acc + shp.getProductQuantity(), Integer::sum);
+        if(reducedQuantity - currentQuantity + requestedQuantity > orderProduct.getProductQuantity()){
+            throw new NoSuchElementException("Сумарна кількість продуктів відправлень більше за вказану у замовлені.");
+        }
     }
 
     private String generateUniqueShipmentNumber() {

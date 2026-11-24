@@ -80,9 +80,7 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
         LotBooking booking = lotBookingRepository.findByBookingNumber(dto.getLotBookingNumber())
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено"));
 
-        List<String> splitName = Arrays.stream(dto.getEmployee().split(" ")).toList();
-        Employee employee = employeeRepository.findByFirstNameAndLastName(splitName.getFirst(), splitName.getLast())
-                .orElseThrow(() -> new NoSuchElementException("Оператора не знайдено"));
+        Employee employee = findEmployeeByFullName(dto.getEmployee());
 
 
         Order order = orderRepository.findByOrderNumber(dto.getOrderNumber()).orElseThrow(() -> new NoSuchElementException("Замовлення не знайдено"));
@@ -90,20 +88,10 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
 
         Room room = roomRepository.findByRoomNumber(dto.getRoomNumber())
                 .orElseThrow(() -> new NoSuchElementException("Кімнату не знайдено"));
-        if(!room.getProductType().getTypeName().equals(concreteProduct.getProduct().getProductType().getTypeName())){
-            throw new NoSuchElementException("Обрана кімната не відповідає типу продукції");
-        }
+        validateRoomMatchesProduct(room, concreteProduct);
 
         OrderProduct orderProduct = orderProductRepository.findByConcreteProductAndOrder(concreteProduct, order).orElseThrow(() -> new NoSuchElementException("Продукту в замовлені не знайдено"));
-        if(orderProduct.getProductQuantity()< dto.getQuantity()){
-            throw new  NoSuchElementException("Кількість продуктів отримань більше за вказану у замовлені.");
-        }
-
-        List<ProductPlacement> placements =  productPlacementRepository.findByOrderProduct(orderProduct);
-        int reducedQuantity = placements.stream().reduce(0, (acc, shp)-> acc + shp.getProductQuantity(), Integer::sum);
-        if(reducedQuantity+dto.getQuantity()>orderProduct.getProductQuantity()){
-            throw new NoSuchElementException("Сумарна кількість продуктів отримань більше за вказану у замовлені.");
-        }
+        validatePlacementQuantity(orderProduct, dto.getQuantity(), 0);
 
         StoredProduct storedProduct = new StoredProduct();
         storedProduct.setRoom(room);
@@ -157,30 +145,18 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
         LotBooking booking = lotBookingRepository.findByBookingNumber(dto.getLotBookingNumber())
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено"));
 
-        List<String> splitName = Arrays.stream(dto.getEmployee().split(" ")).toList();
-        Employee employee = employeeRepository.findByFirstNameAndLastName(splitName.getFirst(), splitName.getLast())
-                .orElseThrow(() -> new NoSuchElementException("Оператора не знайдено"));
+        Employee employee = findEmployeeByFullName(dto.getEmployee());
 
 
         Order order = orderRepository.findByOrderNumber(dto.getOrderNumber()).orElseThrow(() -> new NoSuchElementException("Замовлення не знайдено"));
         ConcreteProduct concreteProduct = concreteProductRepository.findByProductName(dto.getProduct()).orElseThrow(()-> new NoSuchElementException("Продукт не знайдено"));
         OrderProduct orderProduct = orderProductRepository.findByConcreteProductAndOrder(concreteProduct, order).orElseThrow(() -> new NoSuchElementException("Продукту в замовлені не знайдено"));
 
-        if(orderProduct.getProductQuantity()< dto.getQuantity()){
-            throw new  NoSuchElementException("Кількість продуктів отримань більше за вказану у замовлені.");
-        }
-
-        List<ProductPlacement> placements =  productPlacementRepository.findByOrderProduct(orderProduct);
-        int reducedQuantity = placements.stream().reduce(0, (acc, shp)-> acc + shp.getProductQuantity(), Integer::sum);
-        if(reducedQuantity+dto.getQuantity()-placement.getProductQuantity()>orderProduct.getProductQuantity()){
-            throw new NoSuchElementException("Сумарна кількість продуктів отримань більше за вказану у замовлені.");
-        }
+        validatePlacementQuantity(orderProduct, dto.getQuantity(), placement.getProductQuantity());
 
         Room room = roomRepository.findByRoomNumber(dto.getRoomNumber())
                 .orElseThrow(() -> new NoSuchElementException("Кімнату не знайдено"));
-        if(!room.getProductType().getTypeName().equals(concreteProduct.getProduct().getProductType().getTypeName())){
-            throw new NoSuchElementException("Обрана кімната не відповідає типу продукції");
-        }
+        validateRoomMatchesProduct(room, concreteProduct);
 
         placement.setLotBooking(booking);
         placement.setEmployee(employee);
@@ -237,6 +213,31 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
         state.put("quantity", placement.getProductQuantity());
         state.put("lotBooking", placement.getLotBooking().getBookingNumber());
         return state;
+    }
+
+    private Employee findEmployeeByFullName(String fullName) {
+        List<String> splitName = Arrays.stream(fullName.split(" ")).toList();
+        return employeeRepository.findByFirstNameAndLastName(splitName.getFirst(), splitName.getLast())
+                .orElseThrow(() -> new NoSuchElementException("Оператора не знайдено"));
+    }
+
+    private void validateRoomMatchesProduct(Room room, ConcreteProduct concreteProduct) {
+        if(!room.getProductType().getTypeName().equals(concreteProduct.getProduct().getProductType().getTypeName())){
+            throw new NoSuchElementException("Обрана кімната не відповідає типу продукції");
+        }
+    }
+
+    // currentQuantity is the quantity of the placement being updated (0 for a new placement)
+    private void validatePlacementQuantity(OrderProduct orderProduct, Integer requestedQuantity, Integer currentQuantity) {
+        if(orderProduct.getProductQuantity() < requestedQuantity){
+            throw new NoSuchElementException("Кількість продуктів отримань більше за вказану у замовлені.");
+        }
+
+        List<ProductPlacement> placements = productPlacementRepository.findByOrderProduct(orderProduct);
+        int reducedQuantity = placements.stream().reduce(0, (acc, shp)-> acc + shp.getProductQuantity(), Integer::sum);
+        if(reducedQuantity + requestedQuantity - currentQuantity > orderProduct.getProductQuantity()){
+            throw new NoSuchElementException("Сумарна кількість продуктів отримань більше за вказану у замовлені.");
+        }
     }
 
     private String generateUniquePlacementNumber() {

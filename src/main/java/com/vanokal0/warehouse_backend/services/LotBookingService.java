@@ -148,13 +148,7 @@ public class LotBookingService extends BaseSpecificationService<LotBooking> {
 
         LotBooking saved = lotBookingRepository.save(booking);
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("bookingNumber", saved.getBookingNumber());
-        newState.put("supplier", saved.getSupplier().getCompanyName());
-        newState.put("lotNumber", saved.getParkingLot().getLotNumber());
-        newState.put("bookingDateTime", saved.getBookingDateTime());
-        newState.put("startDateTime", saved.getStartDateTime());
-        newState.put("endDateTime", saved.getEndDateTime());
+        Map<String, Object> newState = toAuditState(saved);
 
         actionLogService.logAction(LOGIST_ID, "CREATE", "LotBooking", saved.getId(), null, newState);
 
@@ -165,13 +159,7 @@ public class LotBookingService extends BaseSpecificationService<LotBooking> {
         LotBooking booking = lotBookingRepository.findByBookingNumber(number)
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено."));
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("bookingNumber", booking.getBookingNumber());
-        prevState.put("supplier", booking.getSupplier().getCompanyName());
-        prevState.put("lotNumber", booking.getParkingLot().getLotNumber());
-        prevState.put("bookingDateTime", booking.getBookingDateTime());
-        prevState.put("startDateTime", booking.getStartDateTime());
-        prevState.put("endDateTime", booking.getEndDateTime());
+        Map<String, Object> prevState = toAuditState(booking);
 
         booking.setBookingDateTime(dto.getBookingDateTime());
         booking.setStartDateTime(dto.getStartDateTime());
@@ -189,13 +177,7 @@ public class LotBookingService extends BaseSpecificationService<LotBooking> {
 
         LotBooking saved = lotBookingRepository.save(booking);
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("bookingNumber", saved.getBookingNumber());
-        newState.put("supplier", saved.getSupplier().getCompanyName());
-        newState.put("lotNumber", saved.getParkingLot().getLotNumber());
-        newState.put("bookingDateTime", saved.getBookingDateTime());
-        newState.put("startDateTime", saved.getStartDateTime());
-        newState.put("endDateTime", saved.getEndDateTime());
+        Map<String, Object> newState = toAuditState(saved);
 
         actionLogService.logAction(LOGIST_ID, "UPDATE", "LotBooking", saved.getId(), prevState, newState);
 
@@ -211,17 +193,22 @@ public class LotBookingService extends BaseSpecificationService<LotBooking> {
             throw new NoSuchElementException("Бронювання має зв'язані операції.");
         }
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("bookingNumber", booking.getBookingNumber());
-        prevState.put("supplier", booking.getSupplier().getCompanyName());
-        prevState.put("lotNumber", booking.getParkingLot().getLotNumber());
-        prevState.put("bookingDateTime", booking.getBookingDateTime());
-        prevState.put("startDateTime", booking.getStartDateTime());
-        prevState.put("endDateTime", booking.getEndDateTime());
+        Map<String, Object> prevState = toAuditState(booking);
 
         lotBookingRepository.delete(booking);
 
         actionLogService.logAction(LOGIST_ID, "DELETE", "LotBooking", booking.getId(), prevState, null);
+    }
+
+    private Map<String, Object> toAuditState(LotBooking booking) {
+        Map<String, Object> state = new HashMap<>();
+        state.put("bookingNumber", booking.getBookingNumber());
+        state.put("supplier", booking.getSupplier().getCompanyName());
+        state.put("lotNumber", booking.getParkingLot().getLotNumber());
+        state.put("bookingDateTime", booking.getBookingDateTime());
+        state.put("startDateTime", booking.getStartDateTime());
+        state.put("endDateTime", booking.getEndDateTime());
+        return state;
     }
 
     private String generateUniqueBookingNumber() {

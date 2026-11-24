@@ -124,14 +124,7 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
 
         productPlacementRepository.save(placement);
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("number", placement.getPlacementNumber());
-        newState.put("employee", employee.getFirstName() + " " + employee.getLastName());
-        newState.put("room", room.getRoomNumber());
-        newState.put("order", order.getOrderNumber());
-        newState.put("product", concreteProduct.getProductName());
-        newState.put("quantity", placement.getProductQuantity());
-        newState.put("lotBooking", booking.getBookingNumber());
+        Map<String, Object> newState = toAuditState(placement);
 
         actionLogService.logAction(
                 OPERATOR_ID,
@@ -158,14 +151,7 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
         ProductPlacement placement = productPlacementRepository.findByPlacementNumber(number)
                 .orElseThrow(() -> new NoSuchElementException("Розміщення не знайдено"));
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("number", placement.getPlacementNumber());
-        prevState.put("employee", placement.getEmployee().getFirstName() + " " + placement.getEmployee().getLastName());
-        prevState.put("room", placement.getStoredProduct().getRoom().getRoomNumber());
-        prevState.put("order", placement.getOrderProduct().getOrder().getOrderNumber());
-        prevState.put("product", placement.getOrderProduct().getConcreteProduct().getProductName());
-        prevState.put("quantity", placement.getProductQuantity());
-        prevState.put("lotBooking", placement.getLotBooking().getBookingNumber());
+        Map<String, Object> prevState = toAuditState(placement);
 
 
         LotBooking booking = lotBookingRepository.findByBookingNumber(dto.getLotBookingNumber())
@@ -203,14 +189,7 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
 
         productPlacementRepository.save(placement);
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("number", placement.getPlacementNumber());
-        newState.put("employee", employee.getFirstName() + " " + employee.getLastName());
-        newState.put("room", placement.getStoredProduct().getRoom().getRoomNumber());
-        newState.put("order", order.getOrderNumber());
-        newState.put("product", concreteProduct.getProductName());
-        newState.put("quantity", placement.getProductQuantity());
-        newState.put("lotBooking", booking.getBookingNumber());
+        Map<String, Object> newState = toAuditState(placement);
 
         actionLogService.logAction(
                 OPERATOR_ID,
@@ -231,14 +210,7 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
         ProductPlacement placement = productPlacementRepository.findByPlacementNumber(number)
                 .orElseThrow(() -> new NoSuchElementException("Відправлення не знайдено"));
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("number", placement.getPlacementNumber());
-        prevState.put("employee", placement.getEmployee().getFirstName() + " " + placement.getEmployee().getLastName());
-        prevState.put("room", placement.getStoredProduct().getRoom().getRoomNumber());
-        prevState.put("order", placement.getOrderProduct().getOrder().getOrderNumber());
-        prevState.put("product", placement.getOrderProduct().getConcreteProduct().getProductName());
-        prevState.put("quantity", placement.getProductQuantity());
-        prevState.put("lotBooking", placement.getLotBooking().getBookingNumber());
+        Map<String, Object> prevState = toAuditState(placement);
         productPlacementRepository.delete(placement);
         Order order = placement.getOrderProduct().getOrder();
         if(Objects.equals(order.getOrderStatus().getStatusName(), "STORED")){
@@ -253,6 +225,18 @@ public class ProductPlacementService extends BaseSpecificationService<ProductPla
                 prevState,
                 null
         );
+    }
+
+    private Map<String, Object> toAuditState(ProductPlacement placement) {
+        Map<String, Object> state = new HashMap<>();
+        state.put("number", placement.getPlacementNumber());
+        state.put("employee", placement.getEmployee().getFirstName() + " " + placement.getEmployee().getLastName());
+        state.put("room", placement.getStoredProduct().getRoom().getRoomNumber());
+        state.put("order", placement.getOrderProduct().getOrder().getOrderNumber());
+        state.put("product", placement.getOrderProduct().getConcreteProduct().getProductName());
+        state.put("quantity", placement.getProductQuantity());
+        state.put("lotBooking", placement.getLotBooking().getBookingNumber());
+        return state;
     }
 
     private String generateUniquePlacementNumber() {

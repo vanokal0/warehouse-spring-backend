@@ -124,15 +124,7 @@ public class OrderService extends BaseSpecificationService<Order> {
             orderProductRepository.save(orderProduct);
         }
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("number", savedOrder.getOrderNumber());
-        newState.put("cost", savedOrder.getOrderCost());
-        newState.put("status", savedOrder.getOrderStatus().getStatusName());
-        newState.put("supplier", savedOrder.getSupplier().getCompanyName());
-        newState.put("paymentType", savedOrder.getPaymentType().getTypeName());
-        newState.put("orderDateTime", order.getOrderDateTime());
-        newState.put("estimatedArrivalDate", savedOrder.getEstimatedArrivalDate());
-        newState.put("estimatedShipmentDate", savedOrder.getEstimatedShipmentDate());
+        Map<String, Object> newState = toAuditState(savedOrder);
 
         actionLogService.logAction(
                 MANAGER_ID,
@@ -152,15 +144,7 @@ public class OrderService extends BaseSpecificationService<Order> {
         Order order = orderRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new NoSuchElementException("Замовлення не знайдено: " + orderNumber));
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("number", order.getOrderNumber());
-        prevState.put("cost", order.getOrderCost());
-        prevState.put("status", order.getOrderStatus().getStatusName());
-        prevState.put("supplier", order.getSupplier().getCompanyName());
-        prevState.put("paymentType", order.getPaymentType().getTypeName());
-        prevState.put("orderDateTime", order.getOrderDateTime());
-        prevState.put("estimatedArrivalDate", order.getEstimatedArrivalDate());
-        prevState.put("estimatedShipmentDate", order.getEstimatedShipmentDate());
+        Map<String, Object> prevState = toAuditState(order);
 
         Supplier supplier = supplierRepository.findByCompanyName(dto.getSupplier())
                 .orElseGet(() -> {
@@ -192,15 +176,7 @@ public class OrderService extends BaseSpecificationService<Order> {
 
         orderRepository.save(order);
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("number", order.getOrderNumber());
-        newState.put("cost", order.getOrderCost());
-        newState.put("status", order.getOrderStatus().getStatusName());
-        newState.put("supplier", order.getSupplier().getCompanyName());
-        newState.put("paymentType", order.getPaymentType().getTypeName());
-        newState.put("orderDateTime", order.getOrderDateTime());
-        newState.put("estimatedArrivalDate", order.getEstimatedArrivalDate());
-        newState.put("estimatedShipmentDate", order.getEstimatedShipmentDate());
+        Map<String, Object> newState = toAuditState(order);
 
         actionLogService.logAction(
                 MANAGER_ID,
@@ -272,15 +248,7 @@ public class OrderService extends BaseSpecificationService<Order> {
                 }
             });
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("number", order.getOrderNumber());
-        prevState.put("cost", order.getOrderCost());
-        prevState.put("status", order.getOrderStatus().getStatusName());
-        prevState.put("supplier", order.getSupplier().getCompanyName());
-        prevState.put("paymentType", order.getPaymentType().getTypeName());
-        prevState.put("orderDateTime", order.getOrderDateTime());
-        prevState.put("estimatedArrivalDate", order.getEstimatedArrivalDate());
-        prevState.put("estimatedShipmentDate", order.getEstimatedShipmentDate());
+        Map<String, Object> prevState = toAuditState(order);
 
         orderProductRepository.deleteAll(orderProducts);
         orderRepository.delete(order);
@@ -295,6 +263,18 @@ public class OrderService extends BaseSpecificationService<Order> {
 //        );
     }
 
+    private Map<String, Object> toAuditState(Order order) {
+        Map<String, Object> state = new HashMap<>();
+        state.put("number", order.getOrderNumber());
+        state.put("cost", order.getOrderCost());
+        state.put("status", order.getOrderStatus().getStatusName());
+        state.put("supplier", order.getSupplier().getCompanyName());
+        state.put("paymentType", order.getPaymentType().getTypeName());
+        state.put("orderDateTime", order.getOrderDateTime());
+        state.put("estimatedArrivalDate", order.getEstimatedArrivalDate());
+        state.put("estimatedShipmentDate", order.getEstimatedShipmentDate());
+        return state;
+    }
 
 
     private String generateOrderNumber(String supplierCompanyName) {

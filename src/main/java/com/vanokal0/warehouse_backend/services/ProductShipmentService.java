@@ -149,13 +149,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
             orderRepository.save(order);
         }
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("shipmentNumber", shipment.getShipmentNumber());
-        newState.put("employee", employee.getFirstName() + " " + employee.getLastName());
-        newState.put("product", concreteProduct.getProductName());
-        newState.put("quantity", dto.getQuantity());
-        newState.put("room", room.getRoomNumber());
-        newState.put("lotBooking", booking.getBookingNumber());
+        Map<String, Object> newState = toAuditState(shipment);
 
         actionLogService.logAction(
                 OPERATOR_ID,
@@ -176,13 +170,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         ProductShipment shipment = productShipmentRepository.findByShipmentNumber(number)
                 .orElseThrow(() -> new NoSuchElementException("Відправлення не знайдено"));
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("shipmentNumber", shipment.getShipmentNumber());
-        prevState.put("employee", shipment.getEmployee().getFirstName() + " " + shipment.getEmployee().getLastName());
-        prevState.put("product", shipment.getOrderProduct().getConcreteProduct().getProductName());
-        prevState.put("quantity", shipment.getProductQuantity());
-        prevState.put("room", shipment.getStoredProduct().getRoom().getRoomNumber());
-        prevState.put("lotBooking", shipment.getLotBooking().getBookingNumber());
+        Map<String, Object> prevState = toAuditState(shipment);
 
         LotBooking booking = lotBookingRepository.findByBookingNumber(dto.getLotBookingNumber())
                 .orElseThrow(() -> new NoSuchElementException("Бронювання не знайдено"));
@@ -227,13 +215,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
 
         productShipmentRepository.save(shipment);
 
-        Map<String, Object> newState = new HashMap<>();
-        newState.put("shipmentNumber", shipment.getShipmentNumber());
-        newState.put("employee", employee.getFirstName() + " " + employee.getLastName());
-        newState.put("product", concreteProduct.getProductName());
-        newState.put("quantity", dto.getQuantity());
-        newState.put("room", shipment.getStoredProduct().getRoom().getRoomNumber());
-        newState.put("lotBooking", booking.getBookingNumber());
+        Map<String, Object> newState = toAuditState(shipment);
 
         actionLogService.logAction(
                 OPERATOR_ID,
@@ -252,13 +234,7 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
         ProductShipment shipment = productShipmentRepository.findByShipmentNumber(number)
                 .orElseThrow(() -> new NoSuchElementException("Відправлення не знайдено"));
 
-        Map<String, Object> prevState = new HashMap<>();
-        prevState.put("shipmentNumber", shipment.getShipmentNumber());
-        prevState.put("employee", shipment.getEmployee().getFirstName() + " " + shipment.getEmployee().getLastName());
-        prevState.put("product", shipment.getOrderProduct().getConcreteProduct().getProductName());
-        prevState.put("quantity", shipment.getProductQuantity());
-        prevState.put("room", shipment.getStoredProduct().getRoom().getRoomNumber());
-        prevState.put("lotBooking", shipment.getLotBooking().getBookingNumber());
+        Map<String, Object> prevState = toAuditState(shipment);
 
         Order order = shipment.getOrderProduct().getOrder();
         if (order.getOrderStatus().getStatusName().equals( "SHIPPED")) {
@@ -276,6 +252,17 @@ public class ProductShipmentService extends BaseSpecificationService<ProductShip
                 prevState,
                 null
         );
+    }
+
+    private Map<String, Object> toAuditState(ProductShipment shipment) {
+        Map<String, Object> state = new HashMap<>();
+        state.put("shipmentNumber", shipment.getShipmentNumber());
+        state.put("employee", shipment.getEmployee().getFirstName() + " " + shipment.getEmployee().getLastName());
+        state.put("product", shipment.getOrderProduct().getConcreteProduct().getProductName());
+        state.put("quantity", shipment.getProductQuantity());
+        state.put("room", shipment.getStoredProduct().getRoom().getRoomNumber());
+        state.put("lotBooking", shipment.getLotBooking().getBookingNumber());
+        return state;
     }
 
     private String generateUniqueShipmentNumber() {

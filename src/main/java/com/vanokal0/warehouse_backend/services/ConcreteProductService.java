@@ -73,33 +73,9 @@ public class ConcreteProductService extends BaseSpecificationService<ConcretePro
 
     public ConcreteProductDTO createConcreteProduct(ConcreteProductDTO dto) {
 
-        ProductType type = productTypeRepository
-                .findByTypeName(dto.getType())
-                .orElseGet(() -> {
-                    ProductType newType = new ProductType();
-                    newType.setTypeName(dto.getType());
-                    return productTypeRepository.save(newType);
-                });
-
-
-        Product product = productRepository
-                .findByProductName(dto.getProductName())
-                .orElseGet(() -> {
-                    Product newProduct = new Product();
-                    newProduct.setProductName(dto.getProductName());
-                    newProduct.setProductType(type);
-                    return productRepository.save(newProduct);
-                });
-
-
-        ProductManufacturer manufacturer = productManufacturerRepository
-                .findByCompanyName(dto.getManufacturer())
-                .orElseGet(() -> {
-                    ProductManufacturer newMan = new ProductManufacturer();
-                    newMan.setCompanyName(dto.getManufacturer());
-                    return productManufacturerRepository.save(newMan);
-                });
-
+        ProductType type = findOrCreateProductType(dto.getType());
+        Product product = findOrCreateProduct(dto.getProductName(), type);
+        ProductManufacturer manufacturer = findOrCreateManufacturer(dto.getManufacturer());
 
         ConcreteProduct newConcrete = new ConcreteProduct();
         newConcrete.setProductName(dto.getConcreteProductName());
@@ -117,32 +93,13 @@ public class ConcreteProductService extends BaseSpecificationService<ConcretePro
                 .orElseThrow(() -> new NoSuchElementException("Конкретний продукт не знайдено"));
 
         // Тип
-        ProductType type = productTypeRepository
-                .findByTypeName(dto.getType())
-                .orElseGet(() -> {
-                    ProductType newType = new ProductType();
-                    newType.setTypeName(dto.getType());
-                    return productTypeRepository.save(newType);
-                });
+        ProductType type = findOrCreateProductType(dto.getType());
 
         // Базовий продукт
-        Product product = productRepository
-                .findByProductName(dto.getProductName())
-                .orElseGet(() -> {
-                    Product newProduct = new Product();
-                    newProduct.setProductName(dto.getProductName());
-                    newProduct.setProductType(type);
-                    return productRepository.save(newProduct);
-                });
+        Product product = findOrCreateProduct(dto.getProductName(), type);
 
         // Виробник
-        ProductManufacturer manufacturer = productManufacturerRepository
-                .findByCompanyName(dto.getManufacturer())
-                .orElseGet(() -> {
-                    ProductManufacturer newMan = new ProductManufacturer();
-                    newMan.setCompanyName(dto.getManufacturer());
-                    return productManufacturerRepository.save(newMan);
-                });
+        ProductManufacturer manufacturer = findOrCreateManufacturer(dto.getManufacturer());
 
         // Оновлення
         concreteProduct.setProductName(dto.getConcreteProductName());
@@ -152,5 +109,36 @@ public class ConcreteProductService extends BaseSpecificationService<ConcretePro
         concreteProduct.setManufacturer(manufacturer);
 
         return concreteProductMapper.toDTO(concreteProductRepository.save(concreteProduct));
+    }
+
+    private ProductType findOrCreateProductType(String typeName) {
+        return productTypeRepository
+                .findByTypeName(typeName)
+                .orElseGet(() -> {
+                    ProductType newType = new ProductType();
+                    newType.setTypeName(typeName);
+                    return productTypeRepository.save(newType);
+                });
+    }
+
+    private Product findOrCreateProduct(String productName, ProductType type) {
+        return productRepository
+                .findByProductName(productName)
+                .orElseGet(() -> {
+                    Product newProduct = new Product();
+                    newProduct.setProductName(productName);
+                    newProduct.setProductType(type);
+                    return productRepository.save(newProduct);
+                });
+    }
+
+    private ProductManufacturer findOrCreateManufacturer(String companyName) {
+        return productManufacturerRepository
+                .findByCompanyName(companyName)
+                .orElseGet(() -> {
+                    ProductManufacturer newMan = new ProductManufacturer();
+                    newMan.setCompanyName(companyName);
+                    return productManufacturerRepository.save(newMan);
+                });
     }
 }

@@ -49,12 +49,7 @@ public class ParkingLotService {
                     return loadingDockRepository.save(newDock);
                 });
 
-        VehicleType vehicleType = vehicleTypeRepository.findByTypeName(dto.getType())
-                .orElseGet(() -> {
-                    VehicleType newType = new VehicleType();
-                    newType.setTypeName(dto.getType());
-                    return vehicleTypeRepository.save(newType);
-                });
+        VehicleType vehicleType = findOrCreateVehicleType(dto.getType());
 
         long index = parkingLotRepository.countByLoadingDock(dock) + 1;
         String firstLetter = dto.getType().substring(0, 1).toUpperCase();
@@ -95,12 +90,7 @@ public class ParkingLotService {
                     return loadingDockRepository.save(newDock);
                 });
 
-        VehicleType type = vehicleTypeRepository.findByTypeName(dto.getType())
-                .orElseGet(() -> {
-                    VehicleType newType = new VehicleType();
-                    newType.setTypeName(dto.getType());
-                    return vehicleTypeRepository.save(newType);
-                });
+        VehicleType type = findOrCreateVehicleType(dto.getType());
 
         lot.setLoadingDock(dock);
         lot.setVehicleType(type);
@@ -126,5 +116,14 @@ public class ParkingLotService {
 
 
         actionLogService.logAction(MANAGER_ID, "DELETE", "ParkingLot", saved.getId(), null, null);
+    }
+
+    private VehicleType findOrCreateVehicleType(String typeName) {
+        return vehicleTypeRepository.findByTypeName(typeName)
+                .orElseGet(() -> {
+                    VehicleType newType = new VehicleType();
+                    newType.setTypeName(typeName);
+                    return vehicleTypeRepository.save(newType);
+                });
     }
 }

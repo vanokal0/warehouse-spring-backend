@@ -57,26 +57,9 @@ public class RoomService {
         Warehouse warehouse = warehouseRepository.findByNumber(dto.getWarehouseNumber())
                 .orElseThrow(() -> new NoSuchElementException("Склад не знайдено"));
 
-        ProductType productType = productTypeRepository.findByTypeName(dto.getType())
-                .orElseGet(() -> {
-                    ProductType roomProductType = new ProductType();
-                    roomProductType.setTypeName(dto.getType());
-                    return productTypeRepository.save(roomProductType);
-                });
-
-        RoomTemperature temperature = roomTemperatureRepository.findByTemperature(dto.getTemperature())
-                .orElseGet(() -> {
-                    RoomTemperature roomTemperature = new RoomTemperature();
-                    roomTemperature.setTemperature(dto.getTemperature());
-                    return roomTemperatureRepository.save(roomTemperature);
-                });
-
-        RoomHumidity humidity = roomHumidityRepository.findByHumidity(dto.getHumidity())
-                .orElseGet(() -> {
-                    RoomHumidity roomHumidity = new RoomHumidity();
-                    roomHumidity.setHumidity(dto.getHumidity());
-                    return roomHumidityRepository.save(roomHumidity);
-                });
+        ProductType productType = findOrCreateProductType(dto.getType());
+        RoomTemperature temperature = findOrCreateTemperature(dto.getTemperature());
+        RoomHumidity humidity = findOrCreateHumidity(dto.getHumidity());
 
         Room room = new Room();
         room.setWarehouse(warehouse);
@@ -111,26 +94,9 @@ public class RoomService {
         oldState.put("temperature", room.getTemperature().getTemperature());
         oldState.put("availableSpace", room.getAvailableSpace());
         oldState.put("productType", room.getProductType().getTypeName());
-        ProductType productType = productTypeRepository.findByTypeName(dto.getType())
-                .orElseGet(() -> {
-                    ProductType roomProductType = new ProductType();
-                    roomProductType.setTypeName(dto.getType());
-                    return productTypeRepository.save(roomProductType);
-                });
-
-        RoomTemperature temperature = roomTemperatureRepository.findByTemperature(dto.getTemperature())
-                .orElseGet(() -> {
-                    RoomTemperature roomTemperature = new RoomTemperature();
-                    roomTemperature.setTemperature(dto.getTemperature());
-                    return roomTemperatureRepository.save(roomTemperature);
-                });
-
-        RoomHumidity humidity = roomHumidityRepository.findByHumidity(dto.getHumidity())
-                .orElseGet(() -> {
-                    RoomHumidity roomHumidity = new RoomHumidity();
-                    roomHumidity.setHumidity(dto.getHumidity());
-                    return roomHumidityRepository.save(roomHumidity);
-                });
+        ProductType productType = findOrCreateProductType(dto.getType());
+        RoomTemperature temperature = findOrCreateTemperature(dto.getTemperature());
+        RoomHumidity humidity = findOrCreateHumidity(dto.getHumidity());
 
         room.setAvailableSpace(dto.getAvailableSpace());
         room.setProductType(productType);
@@ -176,5 +142,32 @@ public class RoomService {
                 prevState,
                 null
         );
+    }
+
+    private ProductType findOrCreateProductType(String typeName) {
+        return productTypeRepository.findByTypeName(typeName)
+                .orElseGet(() -> {
+                    ProductType roomProductType = new ProductType();
+                    roomProductType.setTypeName(typeName);
+                    return productTypeRepository.save(roomProductType);
+                });
+    }
+
+    private RoomTemperature findOrCreateTemperature(String temperatureValue) {
+        return roomTemperatureRepository.findByTemperature(temperatureValue)
+                .orElseGet(() -> {
+                    RoomTemperature roomTemperature = new RoomTemperature();
+                    roomTemperature.setTemperature(temperatureValue);
+                    return roomTemperatureRepository.save(roomTemperature);
+                });
+    }
+
+    private RoomHumidity findOrCreateHumidity(Integer humidityValue) {
+        return roomHumidityRepository.findByHumidity(humidityValue)
+                .orElseGet(() -> {
+                    RoomHumidity roomHumidity = new RoomHumidity();
+                    roomHumidity.setHumidity(humidityValue);
+                    return roomHumidityRepository.save(roomHumidity);
+                });
     }
 }

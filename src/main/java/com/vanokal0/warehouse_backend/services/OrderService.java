@@ -79,25 +79,14 @@ public class OrderService extends BaseSpecificationService<Order> {
 
     @Transactional
     public OrderDTO createOrder(OrderDTO dto) {
-        Supplier supplier = supplierRepository.findByCompanyName(dto.getSupplier())
-                .orElseGet(() -> {
-                    Supplier newSupplier = new Supplier();
-                    newSupplier.setCompanyName(dto.getSupplier());
-                    newSupplier.setEmail("unknown");
-                    return supplierRepository.save(newSupplier);
-                });
+        Supplier supplier = findOrCreateSupplier(dto.getSupplier());
 
         OrderStatus orderStatus = orderStatusRepository.findByStatusName(dto.getOrderStatus())
                 .orElseThrow(() -> new NoSuchElementException("Статус замовлення не знайдено"));
 
 
 
-        PaymentType paymentType = paymentTypeRepository.findByTypeName(dto.getPaymentType())
-                    .orElseGet(() -> {
-                        PaymentType newPaymentType = new PaymentType();
-                        newPaymentType.setTypeName(dto.getPaymentType());
-                        return paymentTypeRepository.save(newPaymentType);
-                    });
+        PaymentType paymentType = findOrCreatePaymentType(dto.getPaymentType());
 
 
         Order order = new Order();
@@ -146,23 +135,12 @@ public class OrderService extends BaseSpecificationService<Order> {
 
         Map<String, Object> prevState = toAuditState(order);
 
-        Supplier supplier = supplierRepository.findByCompanyName(dto.getSupplier())
-                .orElseGet(() -> {
-                    Supplier newSupplier = new Supplier();
-                    newSupplier.setCompanyName(dto.getSupplier());
-                    newSupplier.setEmail("unknown");
-                    return supplierRepository.save(newSupplier);
-                });
+        Supplier supplier = findOrCreateSupplier(dto.getSupplier());
 
         OrderStatus orderStatus = orderStatusRepository.findByStatusName(dto.getOrderStatus())
                 .orElseThrow(() -> new NoSuchElementException("Статус замовлення не знайдено"));
 
-        PaymentType paymentType = paymentTypeRepository.findByTypeName(dto.getPaymentType())
-                .orElseGet(() -> {
-                    PaymentType newPaymentType = new PaymentType();
-                    newPaymentType.setTypeName(dto.getPaymentType());
-                    return paymentTypeRepository.save(newPaymentType);
-                });
+        PaymentType paymentType = findOrCreatePaymentType(dto.getPaymentType());
 
         order.setOrderCost(dto.getCost());
         order.setOrderDateTime(dto.getOrderDateTime());
@@ -261,6 +239,25 @@ public class OrderService extends BaseSpecificationService<Order> {
 //                prevState,
 //                null
 //        );
+    }
+
+    private Supplier findOrCreateSupplier(String companyName) {
+        return supplierRepository.findByCompanyName(companyName)
+                .orElseGet(() -> {
+                    Supplier newSupplier = new Supplier();
+                    newSupplier.setCompanyName(companyName);
+                    newSupplier.setEmail("unknown");
+                    return supplierRepository.save(newSupplier);
+                });
+    }
+
+    private PaymentType findOrCreatePaymentType(String typeName) {
+        return paymentTypeRepository.findByTypeName(typeName)
+                .orElseGet(() -> {
+                    PaymentType newPaymentType = new PaymentType();
+                    newPaymentType.setTypeName(typeName);
+                    return paymentTypeRepository.save(newPaymentType);
+                });
     }
 
     private Map<String, Object> toAuditState(Order order) {

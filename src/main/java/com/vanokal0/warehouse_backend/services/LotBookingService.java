@@ -4,7 +4,6 @@ import com.vanokal0.warehouse_backend.dto.LotBookingDTO;
 import com.vanokal0.warehouse_backend.mappers.LotBookingMapper;
 import com.vanokal0.warehouse_backend.model.LotBooking;
 import com.vanokal0.warehouse_backend.model.ParkingLot;
-import com.vanokal0.warehouse_backend.model.Warehouse;
 import com.vanokal0.warehouse_backend.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -101,14 +100,7 @@ public class LotBookingService extends BaseSpecificationService<LotBooking> {
     }
 
     public List<String> getBookingNumbersByWarehouseNumber(String warehouseNumber) {
-        return lotBookingRepository.findAll().stream()
-                .filter(lb -> {
-                    if (lb.getParkingLot() == null || lb.getParkingLot().getLoadingDock() == null) return false;
-                    Warehouse w = lb.getParkingLot().getLoadingDock().getWarehouse();
-                    return w != null && warehouseNumber.equals(w.getNumber());
-                })
-                .map(LotBooking::getBookingNumber)
-                .toList();
+        return lotBookingRepository.findBookingNumbersByWarehouseNumber(warehouseNumber);
     }
 
     public LotBookingDTO createLotBooking(LotBookingDTO dto) {

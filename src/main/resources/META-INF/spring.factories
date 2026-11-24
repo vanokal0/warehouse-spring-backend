@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.vanokal0.warehouse_backend.config.LegacyTimeZoneEnvironmentPostProcessor
